@@ -3,13 +3,18 @@ import edu.princeton.cs.algs4.RectHV;
 
 public class KdTree {
 
+    private Node root;
+
     // construct an empty set of points
     public KdTree() {
 
     }
     // is the set empty?
     public boolean isEmpty() {
+        if (root == null)
+            return true;
 
+        return false;
     }
     // number of points in the set
     public int size() {
@@ -19,6 +24,10 @@ public class KdTree {
     public void insert(Point2D p) {
         if (p == null)
             throw new NullPointerException();
+
+        if (isEmpty()) {
+            root = new Node(p);
+        }
 
     }
     // does the set contain point p?
@@ -43,10 +52,20 @@ public class KdTree {
             throw new NullPointerException();
     }
 
-    private class NodePoint2D {
+    private static class Node {
 
         private static final boolean VERTICAL_TYPE = true;
         private static final boolean HORIZONTAL_TYPE = false;
+
+        private Point2D point;
+        private RectHV rect;
+        private Node left;
+        private Node right;
+
+        private Node(Point2D point) {
+            this.point = point;
+        }
+
     }
 
 }
