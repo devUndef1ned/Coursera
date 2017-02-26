@@ -24,14 +24,13 @@ public class Deque<Item> implements Iterable<Item> {
 
         count++;
 
-        if (first == null) {
+        if (count == 1) {
+            addFirstItemIntoQueue(item);
+        } else if (first == null) {
             first = new Node<Item>();
             first.item = item;
-            if (last != null)
-                first.next = last;
-            else {
-                last = first;
-            }
+            first.next = last;
+            last = first;
         } else {
             Node<Item> oldFirst = first;
             first = new Node<Item>();
@@ -57,20 +56,28 @@ public class Deque<Item> implements Iterable<Item> {
             last.previous = oldLast;
         }
     }
+
+    private void addFirstItemIntoQueue(Item item) {
+        Node<Item> node = new Node<Item>();
+        node.item = item;
+        first = node;
+        last = node;
+    }
     public Item removeFirst() {
         if (first == null)
             throw new java.util.NoSuchElementException();
 
         count--;
-        Item item = first.item;
 
-        first = first.next;
-
-        if (first == null)
-            last = null;
-        else {
-            first.previous = null;
+        if (count == 1) {
+            return staySingleItemInQueue(true);
+        } else if (count == 0) {
+            return removeTheLastOne(true);
         }
+
+        Item item = first.item;
+        first = first.next;
+        first.previous = null;
 
         return item;
     }
@@ -79,12 +86,42 @@ public class Deque<Item> implements Iterable<Item> {
             throw new java.util.NoSuchElementException();
 
         count--;
+
+        if (count == 1) {
+            return staySingleItemInQueue(false);
+        } else if (count == 0)
+            return removeTheLastOne(false);
+
         Item item = last.item;
         last = last.previous;
         last.next = null;
-        if (last == null)
-            first = null;
+        return item;
 
+    }
+    private Item staySingleItemInQueue(boolean isFromFirst) {
+        Item item;
+        if (isFromFirst) {
+            item = first.item;
+            first = last;
+            first.previous = null;
+            first.next = null;
+        } else {
+            item = last.item;
+            last = first;
+            last.next = null;
+            last.previous = null;
+        }
+        return item;
+    }
+
+    private Item removeTheLastOne(boolean isFromFirst) {
+        Item item;
+        if (isFromFirst)
+            item = first.item;
+        else
+            item = last.item;
+        first = null;
+        last = null;
         return item;
     }
     public Iterator<Item> iterator() {
