@@ -8,8 +8,8 @@ public class KdTree {
     private static final int DIMENSION = 2;
     private static final int MAX_COORDINATE_VALUE = 1;
     private static final int MIN_COORDINATE_VALUE = 0;
-    private static final boolean VERTICAL_TYPE = true;
-    private static final boolean HORIZONTAL_TYPE = false;
+    private static final boolean VERTICAL_DIVIDER_TYPE = true;
+    private static final boolean HORIZONTAL_DIVIDER_TYPE = false;
 
     private Node root;
 
@@ -37,7 +37,7 @@ public class KdTree {
             throw new NullPointerException();
 
         if (isEmpty()) {
-            root = new Node(p, null, HORIZONTAL_TYPE);
+            root = new Node(p, null, HORIZONTAL_DIVIDER_TYPE);
             root.prepareRectHV();
             return;
         }
@@ -81,7 +81,7 @@ public class KdTree {
     }
 
     private static boolean isPointLess(Point2D p1, Point2D p2, boolean dimenType) {
-        if (dimenType == VERTICAL_TYPE)
+        if (dimenType == VERTICAL_DIVIDER_TYPE)
             return p1.y() < p2.y();
         else
             return p1.x() < p2.x();
@@ -176,34 +176,35 @@ public class KdTree {
         private Node left;
         private Node right;
         private Node parent;
-        private boolean type;
+        private boolean dividerType;
 
-        private Node(Point2D point, Node parent, boolean type) {
+        private Node(Point2D point, Node parent, boolean dividerType) {
             this.point = point;
-            this.type = type;
+            this.dividerType = dividerType;
             this.parent = parent;
         }
 
         private void prepareRectHV() {
             if (parent == null) {
-                rect = new RectHV(MIN_COORDINATE_VALUE, MIN_COORDINATE_VALUE, MAX_COORDINATE_VALUE, point.y());
+                rect = new RectHV(MIN_COORDINATE_VALUE, MIN_COORDINATE_VALUE, point.x(), MAX_COORDINATE_VALUE);
             } else {
-                if (type == VERTICAL_TYPE) {
-                    if (parent.parent == null) {
-                        if (isPointLess(point, parent.point, !type))
-                            rect = new RectHV(MIN_COORDINATE_VALUE, MIN_COORDINATE_VALUE, point.x(), parent.point.y());
-                        else
-                            rect = new RectHV(MIN_COORDINATE_VALUE, parent.point.y(), point.x(), MAX_COORDINATE_VALUE);
-                    } else {
+                if (dividerType == HORIZONTAL_DIVIDER_TYPE) {
+                    if (isPointLess(point, parent.point, !dividerType))
+                        rect = new RectHV(parent.rect.xmin(), parent.rect.ymin(), point.y(), parent.point.x());
+                    else if (parent.parent == null)
+                        rect = new RectHV(parent.rect.xmax(), parent.rect.ymin(), MAX_COORDINATE_VALUE, point.y());
+                    else {
 
                     }
+
+
                 } else {
 
                 }
             }
 
         }
-
+    }
         public static void main(String[] args) {
             KdTree tree = new KdTree();
             Point2D p1 = new Point2D(0.5, 0.5);
@@ -218,14 +219,17 @@ public class KdTree {
             tree.insert(p4);
             tree.insert(p5);
 
+            Node min = tree.min();
+            Node max = tree.max();
+
             System.out.println("tree.contains(p1)? " + tree.contains(p1));
             System.out.println("tree.contains(p2)? " + tree.contains(p2));
             System.out.println("tree.contains(p3)? " + tree.contains(p3));
             System.out.println("tree.contains(p4)? " + tree.contains(p4));
             System.out.println("tree.contains(p5)? " + tree.contains(p5));
             System.out.println("tree.contains(fake)? " + tree.contains(fake));
+            System.out.println("Max is " + max.point);
+            System.out.println("Min is " + min.point);
 
         }
-
-    }
 }
