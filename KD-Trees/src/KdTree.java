@@ -1,7 +1,9 @@
 import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.RectHV;
+import edu.princeton.cs.algs4.StdDraw;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class KdTree {
 
@@ -10,6 +12,8 @@ public class KdTree {
     private static final int MIN_COORDINATE_VALUE = 0;
     private static final boolean VERTICAL_DIVIDER_TYPE = true;
     private static final boolean HORIZONTAL_DIVIDER_TYPE = false;
+    private static final double DEFAULT_WIDTH = 0.02;
+    private static final double POINT_WIDTH = 0.01;
 
     private Node root;
 
@@ -55,7 +59,7 @@ public class KdTree {
                 return;
 
             dimenType = (level % DIMENSION != 0);
-            if (isPointLess(p, cur.point, dimenType)) {
+            if (isPointLessThanParent(p, cur.point, !dimenType)) {
                 if (cur.left == null) {
                     Node newNode = new Node(p, cur, dimenType);
                     cur.left = newNode;
@@ -80,11 +84,11 @@ public class KdTree {
         }
     }
 
-    private static boolean isPointLess(Point2D p1, Point2D p2, boolean dimenType) {
-        if (dimenType == VERTICAL_DIVIDER_TYPE)
-            return p1.y() < p2.y();
+    private static boolean isPointLessThanParent(Point2D point, Point2D parent, boolean parentDividerType) {
+        if (parentDividerType != VERTICAL_DIVIDER_TYPE)
+            return point.x() < parent.x();
         else
-            return p1.x() < p2.x();
+            return point.y() < parent.y();
     }
 
     // does the set contain point p?
@@ -108,7 +112,7 @@ public class KdTree {
                 return cur.point;
 
             dimenType = (level % DIMENSION != 0);
-            if (isPointLess(p, cur.point, dimenType)) {
+            if (isPointLessThanParent(p, cur.point, dimenType)) {
                 if (cur.left == null)
                     return null;
                 else
@@ -125,7 +129,9 @@ public class KdTree {
 
     // draw all points to standard draw
     public void draw() {
-
+        StdDraw.setCanvasSize(MAX_COORDINATE_VALUE*500, MAX_COORDINATE_VALUE*500);
+        for (Node node: getNodeSet())
+            node.draw();
     }
 
     // all points that are inside the rectangle
@@ -168,6 +174,26 @@ public class KdTree {
         }
     }
 
+    private Iterable<Node> getNodeSet() {
+        ArrayList<Node> points = new ArrayList<Node>();
+
+        if (root != null)
+            insertNodeAndAllChildToList(root, points);
+
+        return points;
+    }
+    private void insertNodeAndAllChildToList(Node root, List<Node> list) {
+        list.add(root);
+
+        if (root.left != null) {
+            insertNodeAndAllChildToList(root.left, list);
+        }
+        if (root.right != null)
+            insertNodeAndAllChildToList(root.right, list);
+        if (root.left == null && root.right == null)
+            return;
+    }
+
 
     private static class Node {
 
@@ -187,22 +213,35 @@ public class KdTree {
         private void prepareRectHV() {
             if (parent == null) {
                 rect = new RectHV(MIN_COORDINATE_VALUE, MIN_COORDINATE_VALUE, point.x(), MAX_COORDINATE_VALUE);
+                return;
             } else {
                 if (dividerType == HORIZONTAL_DIVIDER_TYPE) {
-                    if (isPointLess(point, parent.point, !dividerType))
-                        rect = new RectHV(parent.rect.xmin(), parent.rect.ymin(), point.y(), parent.point.x());
+                    if (isPointLessThanParent(point, parent.point, !dividerType))
+                        rect = new RectHV(parent.rect.xmin(), parent.rect.ymin(), parent.point.x(), point.y());
                     else if (parent.parent == null)
                         rect = new RectHV(parent.rect.xmax(), parent.rect.ymin(), MAX_COORDINATE_VALUE, point.y());
-                    else {
-
-                    }
-
-
+                    else
+                        rect = new RectHV(parent.rect.xmax(), parent.rect.ymin(), parent.parent.rect.xmax(), point.y());
                 } else {
-
+                    if (isPointLessThanParent(point, parent.point, !dividerType))
+                        rect = new RectHV(parent.rect.xmin(), parent.rect.ymin(), point.x(), parent.point.y());
+                    else
+                        rect = new RectHV(parent.rect.xmin(), parent.rect.ymax(), point.x(), parent.parent.rect.ymax());
                 }
             }
 
+        }
+
+        public void draw() {
+            if (dividerType == VERTICAL_DIVIDER_TYPE)
+                StdDraw.setPenColor(StdDraw.RED);
+            else
+                StdDraw.setPenColor(StdDraw.BLUE);
+
+            StdDraw.rectangle(rect.xmax() * 500, rect.ymax() * 500, DEFAULT_WIDTH, DEFAULT_WIDTH);
+            StdDraw.setPenColor(StdDraw.BLACK);
+            StdDraw.setPenRadius(POINT_WIDTH);
+            StdDraw.point(point.x() * 500, point.y() * 500);
         }
     }
         public static void main(String[] args) {
@@ -230,6 +269,8 @@ public class KdTree {
             System.out.println("tree.contains(fake)? " + tree.contains(fake));
             System.out.println("Max is " + max.point);
             System.out.println("Min is " + min.point);
+
+            tree.draw();
 
         }
 }
