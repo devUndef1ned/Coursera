@@ -12,8 +12,6 @@ public class KdTree {
     private static final int MIN_COORDINATE_VALUE = 0;
     private static final boolean VERTICAL_DIVIDER_TYPE = true;
     private static final boolean HORIZONTAL_DIVIDER_TYPE = false;
-    private static final double DEFAULT_WIDTH = 0.02;
-    private static final double POINT_WIDTH = 0.01;
 
     private Node root;
 
@@ -41,7 +39,7 @@ public class KdTree {
             throw new NullPointerException();
 
         if (isEmpty()) {
-            root = new Node(p, null, HORIZONTAL_DIVIDER_TYPE);
+            root = new Node(p, null, VERTICAL_DIVIDER_TYPE);
             root.prepareRectHV();
             return;
         }
@@ -86,9 +84,9 @@ public class KdTree {
 
     private static boolean isPointLessThanParent(Point2D point, Point2D parent, boolean parentDividerType) {
         if (parentDividerType != VERTICAL_DIVIDER_TYPE)
-            return point.x() < parent.x();
-        else
             return point.y() < parent.y();
+        else
+            return point.x() < parent.x();
     }
 
     // does the set contain point p?
@@ -129,7 +127,8 @@ public class KdTree {
 
     // draw all points to standard draw
     public void draw() {
-        StdDraw.setCanvasSize(MAX_COORDINATE_VALUE*500, MAX_COORDINATE_VALUE*500);
+        StdDraw.setXscale(0, MAX_COORDINATE_VALUE);
+        StdDraw.setYscale(0, MAX_COORDINATE_VALUE);
         for (Node node: getNodeSet())
             node.draw();
     }
@@ -217,7 +216,7 @@ public class KdTree {
             } else {
                 if (dividerType == HORIZONTAL_DIVIDER_TYPE) {
                     if (isPointLessThanParent(point, parent.point, !dividerType))
-                        rect = new RectHV(parent.rect.xmin(), parent.rect.ymin(), parent.point.x(), point.y());
+                        rect = new RectHV(parent.rect.xmin(), parent.rect.ymin(), parent.rect.xmax(), point.y());
                     else if (parent.parent == null)
                         rect = new RectHV(parent.rect.xmax(), parent.rect.ymin(), MAX_COORDINATE_VALUE, point.y());
                     else
@@ -233,15 +232,21 @@ public class KdTree {
         }
 
         public void draw() {
-            if (dividerType == VERTICAL_DIVIDER_TYPE)
-                StdDraw.setPenColor(StdDraw.RED);
-            else
-                StdDraw.setPenColor(StdDraw.BLUE);
+            StdDraw.setPenRadius();
 
-            StdDraw.rectangle(rect.xmax() * 500, rect.ymax() * 500, DEFAULT_WIDTH, DEFAULT_WIDTH);
+            if (dividerType == VERTICAL_DIVIDER_TYPE) {
+                StdDraw.setPenColor(StdDraw.RED);
+                StdDraw.line(rect.xmax(), rect.ymin(), rect.xmax(), rect.ymax());
+            }
+            else {
+                StdDraw.setPenColor(StdDraw.BLUE);
+                StdDraw.line(rect.xmin(), rect.ymax(), rect.xmax(), rect.ymax());
+            }
+
+
             StdDraw.setPenColor(StdDraw.BLACK);
-            StdDraw.setPenRadius(POINT_WIDTH);
-            StdDraw.point(point.x() * 500, point.y() * 500);
+            StdDraw.setPenRadius(0.01);
+            StdDraw.point(point.x(), point.y());
         }
     }
         public static void main(String[] args) {
@@ -257,6 +262,8 @@ public class KdTree {
             tree.insert(p3);
             tree.insert(p4);
             tree.insert(p5);
+            tree.insert(new Point2D(0.9, 0));
+            tree.insert(new Point2D(0.8, 0.005));
 
             Node min = tree.min();
             Node max = tree.max();
