@@ -1,5 +1,6 @@
 import edu.princeton.cs.algs4.Point2D;
 import edu.princeton.cs.algs4.RectHV;
+import edu.princeton.cs.algs4.SET;
 
 import java.util.Arrays;
 import java.util.TreeSet;
@@ -51,10 +52,15 @@ public class PointSET {
         Point2D min = new Point2D(rect.xmin(), rect.ymin());
         Point2D max = new Point2D(rect.xmax(), rect.ymax());
 
-        Iterable<Point2D> treeTemp = mTree.subSet(mTree.ceiling(min), true,
-                mTree.floor(max), true);
+        SET<Point2D> setRange = new SET<Point2D>();
 
-        return treeTemp;
+        for (Point2D p: mTree) {
+            if (p.x() >= min.x() && p.y() >= min.y() &&
+                    p.x() <= max.x() && p.y() <= max.y())
+                setRange.add(p);
+        }
+
+        return setRange;
 
     }
     // a nearest neighbor in the set to point p; null if the set is empty
@@ -62,7 +68,11 @@ public class PointSET {
         if (p == null)
             throw new NullPointerException();
 
-        Point2D[] arr = (Point2D[]) mTree.toArray();
+        if (isEmpty())
+            return null;
+
+        Point2D[] arr = new Point2D[mTree.size()];
+        mTree.toArray(arr);
         Arrays.sort(arr, p.distanceToOrder());
 
         return arr[0];

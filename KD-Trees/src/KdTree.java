@@ -14,10 +14,11 @@ public class KdTree {
     private static final boolean HORIZONTAL_DIVIDER_TYPE = false;
 
     private Node root;
+    private int size;
 
     // construct an empty set of points
     public KdTree() {
-
+        size = 0;
     }
 
     // is the set empty?
@@ -30,7 +31,7 @@ public class KdTree {
 
     // number of points in the set
     public int size() {
-        return 0;
+        return size;
     }
 
     // add the point to the set (if it is not already in the set)
@@ -41,6 +42,7 @@ public class KdTree {
         if (isEmpty()) {
             root = new Node(p, null, VERTICAL_DIVIDER_TYPE);
             root.prepareRectHV();
+            size++;
             return;
         }
 
@@ -57,11 +59,12 @@ public class KdTree {
                 return;
 
             dimenType = (level % DIMENSION != 0);
-            if (isPointLessThanParent(p, cur.point, !dimenType)) {
+            if (isPointLess(p, cur.point, !dimenType)) {
                 if (cur.left == null) {
                     Node newNode = new Node(p, cur, dimenType);
                     cur.left = newNode;
                     newNode.prepareRectHV();
+                    size++;
                     return;
                 } else {
                     cur = cur.left;
@@ -73,6 +76,7 @@ public class KdTree {
                     Node newNode = new Node(p, cur, dimenType);
                     cur.right = newNode;
                     newNode.prepareRectHV();
+                    size++;
                     return;
                 } else {
                     cur = cur.right;
@@ -82,11 +86,11 @@ public class KdTree {
         }
     }
 
-    private static boolean isPointLessThanParent(Point2D point, Point2D parent, boolean parentDividerType) {
-        if (parentDividerType != VERTICAL_DIVIDER_TYPE)
-            return point.y() < parent.y();
+    private static boolean isPointLess(Point2D point, Point2D basePoint, boolean baseDividerType) {
+        if (baseDividerType != VERTICAL_DIVIDER_TYPE)
+            return point.y() < basePoint.y();
         else
-            return point.x() < parent.x();
+            return point.x() < basePoint.x();
     }
 
     // does the set contain point p?
@@ -101,7 +105,6 @@ public class KdTree {
     }
 
     private Point2D findPoint(Point2D p) {
-        int level = 0;
         boolean dimenType;
         Node cur = root;
 
@@ -109,8 +112,7 @@ public class KdTree {
             if (cur.point.equals(p))
                 return cur.point;
 
-            dimenType = (level % DIMENSION != 0);
-            if (isPointLessThanParent(p, cur.point, dimenType)) {
+            if (isPointLess(p, cur.point, cur.dividerType)) {
                 if (cur.left == null)
                     return null;
                 else
@@ -121,7 +123,6 @@ public class KdTree {
                 else
                     cur = cur.right;
             }
-            level++;
         }
     }
 
@@ -138,42 +139,81 @@ public class KdTree {
         if (rect == null)
             throw new NullPointerException();
 
-        return new ArrayList<Point2D>();
+        List<Point2D> pointsInRect = new ArrayList<Point2D>();
+        if (isEmpty())
+            return pointsInRect;
+
+        recursivelyFindAllPointsInRectAndInsertInList(root, rect, pointsInRect);
+
+        return pointsInRect;
+    }
+
+    private void recursivelyFindAllPointsInRectAndInsertInList(Node rootNode, final RectHV rect,
+                                                               final List<Point2D> list) {
+        if (rect.contains(rootNode.point)) {
+            list.add(rootNode.point);
+            if (rootNode.left != null)
+                recursivelyFindAllPointsInRectAndInsertInList(rootNode.left, rect, list);
+            if (rootNode.right != null)
+                recursivelyFindAllPointsInRectAndInsertInList(rootNode.right, rect, list);
+        } else if (isPointLess(new Point2D(rect.xmax(), rect.ymax()), rootNode.point, rootNode.dividerType) &&
+                rootNode.left != null) {
+            recursivelyFindAllPointsInRectAndInsertInList(rootNode.left, rect, list);
+        } else if (isPointLess(new Point2D(rect.xmin(), rect.ymin()), rootNode.point, rootNode.dividerType) &&
+                rootNode.left != null) {
+            recursivelyFindAllPointsInRectAndInsertInList(rootNode.left, rect, list);
+            if (rootNode.right != null)
+                recursivelyFindAllPointsInRectAndInsertInList(rootNode.right, rect, list);
+        } else if (rootNode.right != null) {
+            recursivelyFindAllPointsInRectAndInsertInList(rootNode.right, rect, list);
+        }
     }
 
     // a nearest neighbor in the set to point p; null if the set is empty
     public Point2D nearest(Point2D p) {
         if (p == null)
             throw new NullPointerException();
-        return new Point2D(1, 1);
-    }
 
-    private Node min() {
-        if (root == null)
+        if (isEmpty())
             return null;
-        else {
-            Node cur = root;
-            while (cur.left != null) {
-                cur = cur.left;
-            }
-            return cur;
+
+        Node nearest = findNearestPointRecursively(p, root, root);
+
+        return nearest.point;
+    }
+    private Node findNearestPointRecursively(Point2D queryPoint, Node rootNode, Node bestNode) {
+
+        if (queryPoint.distanceSquaredTo(bestNode.point) > queryPoint.distanceSquaredTo(rootNode.point)) {
+            bestNode = rootNode;
         }
+
+        if (isPointLess(queryPoint, rootNode.point, rootNode.dividerType) && rootNode.left != null) {
+            bestNode = findNearestPointRecursively(queryPoint, rootNode.left, bestNode);
+
+            if (canBeInAnotherSubTree(queryPoint, rootNode, bestNode) && rootNode.right != null)
+                bestNode = findNearestPointRecursively(queryPoint, rootNode.right, bestNode);
+
+        } else if (rootNode.right != null) {
+            bestNode = findNearestPointRecursively(queryPoint, rootNode.right, bestNode);
+
+            if (canBeInAnotherSubTree(queryPoint, rootNode, bestNode) && rootNode.left != null)
+                bestNode = findNearestPointRecursively(queryPoint, rootNode.left, bestNode);
+        }
+
+        return bestNode;
     }
 
-    private Node max() {
-        if (root == null)
-            return null;
-        else {
-            Node cur = root;
-            while (cur.right != null) {
-                cur = cur.right;
-            }
+    private boolean canBeInAnotherSubTree(Point2D queryPoint, Node node, Node bestNode) {
+        double distanceToSplittingLine;
+        if (node.dividerType == VERTICAL_DIVIDER_TYPE)
+            distanceToSplittingLine = queryPoint.distanceSquaredTo(new Point2D(node.point.x(), queryPoint.y()));
+        else
+            distanceToSplittingLine = queryPoint.distanceSquaredTo(new Point2D(queryPoint.x(), node.point.y()));
 
-            return cur;
-        }
+        return distanceToSplittingLine < queryPoint.distanceSquaredTo(bestNode.point);
     }
 
-    private Iterable<Node> getNodeSet() {
+    private List<Node> getNodeSet() {
         ArrayList<Node> points = new ArrayList<Node>();
 
         if (root != null)
@@ -181,15 +221,15 @@ public class KdTree {
 
         return points;
     }
-    private void insertNodeAndAllChildToList(Node root, List<Node> list) {
-        list.add(root);
+    private void insertNodeAndAllChildToList(Node rootNode, final List<Node> list) {
+        list.add(rootNode);
 
-        if (root.left != null) {
-            insertNodeAndAllChildToList(root.left, list);
+        if (rootNode.left != null) {
+            insertNodeAndAllChildToList(rootNode.left, list);
         }
-        if (root.right != null)
-            insertNodeAndAllChildToList(root.right, list);
-        if (root.left == null && root.right == null)
+        if (rootNode.right != null)
+            insertNodeAndAllChildToList(rootNode.right, list);
+        if (rootNode.left == null && rootNode.right == null)
             return;
     }
 
@@ -215,14 +255,14 @@ public class KdTree {
                 return;
             } else {
                 if (dividerType == HORIZONTAL_DIVIDER_TYPE) {
-                    if (isPointLessThanParent(point, parent.point, !dividerType))
+                    if (isPointLess(point, parent.point, !dividerType))
                         rect = new RectHV(parent.rect.xmin(), parent.rect.ymin(), parent.rect.xmax(), point.y());
                     else if (parent.parent == null)
                         rect = new RectHV(parent.rect.xmax(), parent.rect.ymin(), MAX_COORDINATE_VALUE, point.y());
                     else
                         rect = new RectHV(parent.rect.xmax(), parent.rect.ymin(), parent.parent.rect.xmax(), point.y());
                 } else {
-                    if (isPointLessThanParent(point, parent.point, !dividerType))
+                    if (isPointLess(point, parent.point, !dividerType))
                         rect = new RectHV(parent.rect.xmin(), parent.rect.ymin(), point.x(), parent.point.y());
                     else
                         rect = new RectHV(parent.rect.xmin(), parent.rect.ymax(), point.x(), parent.parent.rect.ymax());
@@ -265,8 +305,7 @@ public class KdTree {
             tree.insert(new Point2D(0.9, 0));
             tree.insert(new Point2D(0.8, 0.005));
 
-            Node min = tree.min();
-            Node max = tree.max();
+            Point2D queryPoint = new Point2D(0.9, 0.001);
 
             System.out.println("tree.contains(p1)? " + tree.contains(p1));
             System.out.println("tree.contains(p2)? " + tree.contains(p2));
@@ -274,8 +313,8 @@ public class KdTree {
             System.out.println("tree.contains(p4)? " + tree.contains(p4));
             System.out.println("tree.contains(p5)? " + tree.contains(p5));
             System.out.println("tree.contains(fake)? " + tree.contains(fake));
-            System.out.println("Max is " + max.point);
-            System.out.println("Min is " + min.point);
+
+            System.out.println("The nearest point to " + queryPoint + " is point " + tree.nearest(queryPoint));
 
             tree.draw();
 
